@@ -31,11 +31,7 @@ The layout measures itself and shrinks type until both columns fit on a single 1
 ## Privacy
 Everything runs in the browser. The quote PDF is never uploaded anywhere.
 
-## Running it
-It's a static site — no build step.
 
-* **GitHub Pages:** repo **Settings → Pages → Build and deployment → Deploy from a branch → `main` / `(root)`**. The site will be at `https://bennypontoons.github.io/MSRP_SHEET_GEN/`.
-* **Locally:** `python3 -m http.server 8765` in this folder, then open http://localhost:8765. (Opening `index.html` directly from disk won't load the fonts.)
 
 ## Project layout
 ```
