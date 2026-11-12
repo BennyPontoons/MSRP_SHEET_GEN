@@ -63,6 +63,8 @@
       if (it.price !== 0) return 'perf';
     } else if (/hydraulic (assist )?steering|power assist steering/i.test(d)) return 'perf';
     if (styleKind(d)) return 'styling';
+    // Anything that mentions an accent (e.g. "Ironwood Accent Package", "Chrome Accents") is styling, not an option.
+    if (/\baccents?\b/i.test(d) && it.price !== 0) return 'styling';
     if (it.price !== 0) return 'options';
     if (/^Stage\s*\d+\s*:/i.test(d)) return 'options';
     return 'hidden';
