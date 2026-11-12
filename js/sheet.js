@@ -124,8 +124,9 @@
     add('Beam', feetInches(specs.beam));
     add('Engine Configuration', specs.engine);
     if (specs.fuel) {
-      const m = String(specs.fuel).match(/(\d+(?:\.\d+)?)\s*gal/i);
-      add('Fuel Capacity', m ? `${m[1]} gal` : specs.fuel);
+      // Use the quote's own wording for the amount, e.g. "Direct Fuel 33gal." -> "33gal"
+      const m = String(specs.fuel).match(/\d+(?:\.\d+)?\s*gal(?:lons?|s)?/i);
+      add('Fuel Capacity', m ? m[0] : specs.fuel);
     }
     return rows;
   }
