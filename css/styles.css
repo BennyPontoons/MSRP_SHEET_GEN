@@ -160,9 +160,15 @@ main { max-width: 1440px; margin: 0 auto; padding: 0 28px 64px; }
 .line__label.is-sub::before { content: ''; position: absolute; left: 2px; top: .7em; width: 7px; height: 1px; background: var(--muted); }
 .line__price { font-size: 13.5px; font-weight: 600; font-variant-numeric: tabular-nums; text-align: right; }
 .line__price.is-zero { color: var(--muted); font-weight: 500; }
-.line select { grid-column: 1 / -1; justify-self: start; font-size: 11.5px; padding: 2px 22px 2px 8px; border: 1px solid var(--line); border-radius: 6px; background: #fafafb; color: var(--muted); appearance: none; background-image: linear-gradient(45deg, transparent 50%, var(--muted) 50%), linear-gradient(135deg, var(--muted) 50%, transparent 50%); background-position: calc(100% - 11px) 50%, calc(100% - 7px) 50%; background-size: 4px 4px; background-repeat: no-repeat; cursor: pointer; display: none; margin-top: 2px; }
-#groups.is-editing .line select { display: block; }
-#editToggle[aria-pressed="true"] { background: var(--ink); color: #fff; border-color: var(--ink); }
+.line select {
+  grid-column: 1 / -1; justify-self: start; margin-top: 4px; appearance: none; cursor: pointer;
+  font-size: 11.5px; font-weight: 600; letter-spacing: .02em; color: var(--muted);
+  padding: 3px 24px 3px 9px; border: 1px solid var(--line); border-radius: 999px; background-color: #f6f7f9;
+  background-image: linear-gradient(45deg, transparent 50%, var(--muted) 50%), linear-gradient(135deg, var(--muted) 50%, transparent 50%);
+  background-position: calc(100% - 13px) 52%, calc(100% - 9px) 52%; background-size: 4px 4px; background-repeat: no-repeat;
+  transition: border-color .15s, color .15s, background-color .15s;
+}
+.line select:hover { border-color: var(--ink); color: var(--ink); background-color: #fff; }
 .empty { font-size: 13px; color: var(--muted); padding: 8px 0; }
 
 .hidden-items { margin-top: 14px; font-size: 13px; }

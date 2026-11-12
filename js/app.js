@@ -94,14 +94,14 @@
   }
 
   const MOVE_TARGETS = [
-    ['base', 'Base boat'],
+    ['base', 'Base Boat'],
     ['styling', 'Styling'],
+    ['engine', 'Performance · Engine'],
+    ['prerig', 'Performance · Pre-rig'],
+    ['rigging', 'Performance · Rigging'],
     ['perf', 'Performance'],
-    ['engine', 'Engine'],
-    ['prerig', 'Pre-rig'],
-    ['rigging', 'Engine rigging'],
     ['options', 'Options'],
-    ['hidden', 'Don’t show (only $0 items)'],
+    ['hidden', 'Don’t show ($0 items only)'],
   ];
 
   function renderPanel() {
@@ -401,11 +401,6 @@
       update();
     });
     $('#downloadBtn').addEventListener('click', download);
-    $('#editToggle').addEventListener('click', (e) => {
-      const on = $('#groups').classList.toggle('is-editing');
-      e.currentTarget.setAttribute('aria-pressed', String(on));
-      e.currentTarget.textContent = on ? 'Done' : 'Edit sections';
-    });
 
     $('#groups').addEventListener('change', (e) => {
       const sel = e.target.closest('select[data-item]');
