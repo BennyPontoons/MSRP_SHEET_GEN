@@ -200,10 +200,6 @@
     if (quoteTotal != null) checks.push({ label: 'Quote read correctly — line items match its Total Boat MSRP', ok: origTotal === quoteTotal, delta: origTotal - quoteTotal, quoteMatch: true });
     if (!edited) {
       if (quote.summary.base != null) checks.push({ label: 'Base boat matches the quote', ok: buckets.base === quote.summary.base, info: true });
-      if (quote.summary.enginePrerig != null) {
-        const ep = sum(by('engine')) + sum(by('prerig'));
-        checks.push({ label: 'Engine + pre-rig matches the quote’s Engine & Prerig', ok: ep === quote.summary.enginePrerig, info: true });
-      }
     }
     if (hiddenPriced.length) checks.push({ label: 'Every priced item appears on the sheet', ok: false });
     const ok = checks.filter((c) => !c.info).every((c) => c.ok) && quoteTotal != null;
