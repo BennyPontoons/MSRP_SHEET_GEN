@@ -136,7 +136,7 @@
   const RIGHT = { x: M + 336 + 40, w: PAGE_W - 2 * M - 336 - 40 };
   const IMG_TOP = 196, IMG_H = 236;
   const COL_TOP = 470;
-  const COL_BOTTOM = 1146;
+  const COL_BOTTOM = 1188; // no footer: columns may use the full page down to the bottom margin
 
   /**
    * Lays out (and optionally draws) the two columns.
@@ -315,14 +315,7 @@
 
     // title
     doc.setFont(...F.bold); doc.setFontSize(34); doc.setTextColor(...COLOR.ink);
-    doc.text(T(model.boatName || 'Bennington'), PAGE_W / 2, 160, { align: 'center' });
-    const sub = 'MANUFACTURER’S SUGGESTED RETAIL PRICE';
-    doc.setFont(...F.med); doc.setFontSize(8.5); doc.setTextColor(...COLOR.muted);
-    const cs = 2.2;
-    doc.setCharSpace(cs);
-    const sw = doc.getTextWidth(T(sub)) + cs * (T(sub).length - 1);
-    doc.text(T(sub), (PAGE_W - sw) / 2, 180);
-    doc.setCharSpace(0);
+    doc.text(T(model.boatName || 'Bennington'), PAGE_W / 2, 166, { align: 'center' });
 
     // images
     const gap = 24;
@@ -359,14 +352,6 @@
     // column divider
     doc.setDrawColor(...COLOR.hair);
     doc.line(RIGHT.x - 20, COL_TOP, RIGHT.x - 20, COL_BOTTOM);
-
-    // footer
-    doc.setDrawColor(...COLOR.rule);
-    doc.line(M, 1164, PAGE_W - M, 1164);
-    doc.setFont(...F.reg); doc.setFontSize(6.4); doc.setTextColor(...COLOR.muted);
-    const disc = 'Prices shown are Manufacturer’s Suggested Retail Prices in US Dollars and do not include destination fees, prep, registration fees, taxes, dealer installed options, or any other applicable discounts or charges unless otherwise noted. Prices, materials, standard equipment and options are subject to change without notice. Renderings are artistic representations and may not reflect the specific model or selected options; colors, features and options may vary. Please contact your Bennington dealer for exact pricing at the time of purchase.';
-    const lines = doc.splitTextToSize(T(disc), PAGE_W - 2 * M);
-    doc.text(lines, PAGE_W / 2, 1178, { align: 'center', lineHeightFactor: 1.4 });
   }
 
   /** Find the largest scale + standards font that fits, then draw. */
