@@ -157,8 +157,8 @@
                   .join('');
                 const changed = it.priceOverride != null && it.priceOverride !== it.price;
                 return `<div class="line ${changed ? 'is-changed' : ''}">
-                  <div class="line__label ${r.sub ? 'is-sub' : ''}" title="${esc(it.desc)}">${esc(r.label)}${changed ? `<span class="was">was ${it.price === 0 ? 'Included' : money(it.price)} <button type="button" class="linkbtn" data-reset-price="${r.id}">undo</button></span>` : ''}</div>
-                  <input class="line__price ${r.price === 0 ? 'is-zero' : ''}" data-price="${r.id}" value="${r.price === 0 ? '' : money(r.price)}" placeholder="Included" inputmode="decimal" autocomplete="off" aria-label="Price for ${esc(r.label)}" title="Click to change the price" />
+                  <div class="line__label ${r.sub ? 'is-sub' : ''}" title="${esc(it.desc)}">${esc(r.label)}${changed ? `<span class="was">was ${money(it.price)} <button type="button" class="linkbtn" data-reset-price="${r.id}">undo</button></span>` : ''}</div>
+                  <input class="line__price ${r.price === 0 ? 'is-zero' : ''}" data-price="${r.id}" value="${money(r.price)}" placeholder="$0" inputmode="decimal" autocomplete="off" aria-label="Price for ${esc(r.label)}" title="Click to change the price" />
                   <button type="button" class="line__remove" data-remove="${r.id}" aria-label="Remove ${esc(r.label)} from the sheet" title="Remove from sheet">
                     <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
                   </button>
@@ -175,7 +175,7 @@
     $('#removedBox').hidden = !m.removed.length;
     $('#removedCount').textContent = m.removed.length;
     $('#removedList').innerHTML = m.removed
-      .map((it) => `<li><span>${esc(MSRP.cleanPrefix(it.desc))}</span><em>${it.price === 0 ? 'Included' : money(it.price)}</em><button type="button" data-restore="${it.id}">Restore</button></li>`)
+      .map((it) => `<li><span>${esc(MSRP.cleanPrefix(it.desc))}</span><em>${money(it.price)}</em><button type="button" data-restore="${it.id}">Restore</button></li>`)
       .join('');
 
     // hidden ($0) items
@@ -362,7 +362,7 @@
       if (!inp) return;
       const it = findItem(inp.dataset.price);
       const cents = it.priceOverride != null ? it.priceOverride : it.price;
-      inp.value = cents === 0 ? '' : (cents % 100 ? (cents / 100).toFixed(2) : String(cents / 100));
+      inp.value = cents === 0 ? '0' : (cents % 100 ? (cents / 100).toFixed(2) : String(cents / 100));
       inp.dataset.orig = inp.value;
       inp.dataset.justFocused = '1';
       inp.select();

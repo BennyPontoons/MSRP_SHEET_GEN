@@ -92,7 +92,7 @@
 
   /* ---------------- formatting ---------------- */
   const money = (c) => MSRP.fmtMoney(c);
-  function priceText(c) { return c === 0 ? 'Included' : money(c); }
+  function priceText(c) { return money(c); } // $0 items print as "$0"
 
   function feetInches(v) {
     if (v == null || v === '') return '';
