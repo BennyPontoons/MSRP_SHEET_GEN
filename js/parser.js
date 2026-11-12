@@ -364,6 +364,17 @@
       s.text = clean(s.text).replace(/\s*•\s*/g, ' • ').replace(/^•\s*|\s*•$/g, '');
     });
 
+    // ---- fuel capacity as a plain number of gallons (sheet prints it as "33gal")
+    // 1) Boat Information "Fuel Capacity" line, 2) a selected line item that mentions fuel,
+    // 3) the standard features (e.g. "Direct Fill Fuel Tank 25 gal.").
+    const galIn = (t) => {
+      const m = String(t || '').match(/(\d+(?:\.\d+)?)\s*-?\s*(?:gal(?:lon)?s?)\b\.?/i);
+      return m ? m[1] : null;
+    };
+    const fuelItem = items.find((i) => /fuel|tank/i.test(i.desc) && galIn(i.desc));
+    const stdFuel = standards.map((s) => s.text).join(' ').match(/fuel[^•]*?\d+(?:\.\d+)?\s*gal\w*/i);
+    specs.fuelGal = galIn(specs.fuel) || (fuelItem && galIn(fuelItem.desc)) || (stdFuel && galIn(stdFuel[0])) || null;
+
     progress('image', 0);
     let image = null;
     try {

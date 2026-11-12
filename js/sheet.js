@@ -123,11 +123,10 @@
     add('Deck Length', feetInches(specs.deckLength));
     add('Beam', feetInches(specs.beam));
     add('Engine Configuration', specs.engine);
-    if (specs.fuel) {
-      // Use the quote's own wording for the amount, e.g. "Direct Fuel 33gal." -> "33gal"
-      const m = String(specs.fuel).match(/\d+(?:\.\d+)?\s*gal(?:lons?|s)?/i);
-      add('Fuel Capacity', m ? m[0] : specs.fuel);
-    }
+    // Fuel capacity is always printed as "<number>gal", e.g. "33gal".
+    const gal = specs.fuelGal || (String(specs.fuel || '').match(/(\d+(?:\.\d+)?)\s*-?\s*gal/i) || [])[1];
+    if (gal) add('Fuel Capacity', `${gal}gal`);
+    else if (specs.fuel) add('Fuel Capacity', specs.fuel);
     return rows;
   }
   MSRP.specRows = specRows;
