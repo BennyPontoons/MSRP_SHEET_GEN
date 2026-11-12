@@ -47,13 +47,21 @@
     return null;
   }
 
+  // "Sport Package", "Performance Package", "Sport Pkg", and Bennington package codes (SPS, SPS+, ESP, ESP+).
+  // Note: "Sport Trim Package" is a trim (Styling), not a sport package.
+  const PKG_RE = /\b(?:sport|performance)\s+(?:package|pkg)\b|^SPS\+?(?=\s|$)|^ESP\+?(?=\s|$)/i;
+
   function autoCategory(it, idx, items) {
     const d = it.desc;
     if (/^Base Boat\b/i.test(d)) return 'base';
     if (isEngine(it, idx, items)) return 'engine';
     if (/pre-?\s?rig/i.test(d)) return 'prerig';
     if (/\b(single|twin|dual|triple|quad)\b.*\bengine rigging\b/i.test(d) || /^engine rigging/i.test(d)) return 'rigging';
-    if (/performance package|^SPS\+?\b|^ESP\b|^ESP\+|hydraulic (assist )?steering|power assist steering/i.test(d)) return 'perf';
+    // Sport / performance packages go to Performance only when the line costs money;
+    // $0 package lines fall through (and normally stay off the sheet).
+    if (PKG_RE.test(d)) {
+      if (it.price !== 0) return 'perf';
+    } else if (/hydraulic (assist )?steering|power assist steering/i.test(d)) return 'perf';
     if (styleKind(d)) return 'styling';
     if (it.price !== 0) return 'options';
     if (/^Stage\s*\d+\s*:/i.test(d)) return 'options';
@@ -143,18 +151,24 @@
     for (const it of by('rigging')) performance.push({ id: it.id, label: cleanPrefix(it.desc), price: it.price });
     const perf = by('perf');
     if (perf.length) {
-      // main package = shortest package description; its sub-features extend it with " - "
-      const pkgs = perf.filter((p) => /performance package|^SPS|^ESP/i.test(p.desc));
-      const main = pkgs.slice().sort((a, b) => a.desc.length - b.desc.length)[0];
-      const rest = perf.filter((p) => p !== main).sort((a, b) => b.price - a.price || a.order - b.order);
-      if (main) {
+      // Each package line that doesn't extend another package is a "main" line;
+      // lines that extend it with " - " (e.g. "... - Power Hydraulic Assist Steering") list under it.
+      const byPrice = (a, b) => b.price - a.price || a.order - b.order;
+      const pkgs = perf.filter((p) => PKG_RE.test(p.desc));
+      const mains = pkgs
+        .filter((p) => !pkgs.some((q) => q !== p && p.desc.startsWith(q.desc + ' - ')))
+        .sort(byPrice);
+      const used = new Set();
+      for (const main of mains) {
+        used.add(main);
+        performance.push({ id: main.id, label: cleanPrefix(main.desc).replace(/\s*-\s*Increased Horse ?Power$/i, ''), price: main.price });
         const prefix = main.desc + ' - ';
-        performance.push({ id: main.id, label: main.desc.replace(/\s*-\s*Increased Horse ?Power$/i, ''), price: main.price });
-        for (const s of rest.filter((p) => p.desc.startsWith(prefix))) {
+        for (const s of perf.filter((p) => !used.has(p) && p.desc.startsWith(prefix)).sort(byPrice)) {
+          used.add(s);
           performance.push({ id: s.id, label: s.desc.slice(prefix.length), price: s.price, sub: true });
         }
       }
-      for (const s of rest.filter((p) => !main || !p.desc.startsWith(main.desc + ' - '))) {
+      for (const s of perf.filter((p) => !used.has(p)).sort(byPrice)) {
         performance.push({ id: s.id, label: cleanPrefix(s.desc), price: s.price });
       }
     }
