@@ -116,17 +116,26 @@
       <dt>Engine &amp; Performance Package</dt><dd>${money(b.enginePerf)}</dd>
       <dt>Styling &amp; Options</dt><dd>${money(b.stylingOptions)}</dd>
       <dt class="total">Total MSRP</dt><dd class="total">${money(m.total)}</dd>`;
+    const ed = m.edits;
     const badge = $('#reconBadge');
-    badge.className = 'badge ' + (m.reconcile.ok ? 'badge--ok' : 'badge--bad');
-    badge.textContent = m.reconcile.ok ? 'Reconciled to the penny' : 'Needs attention';
+    badge.className = 'badge ' + (!m.reconcile.ok ? 'badge--bad' : ed.edited ? 'badge--edit' : 'badge--ok');
+    badge.textContent = !m.reconcile.ok ? 'Needs attention' : ed.edited ? 'Edited · math verified' : 'Reconciled to the penny';
+    const editNote = ed.edited
+      ? `<div class="edit-note">
+           <div><strong>${ed.delta === 0 ? 'No change' : (ed.delta > 0 ? '+' : '−') + money(Math.abs(ed.delta))}</strong> vs. the original quote (${money(ed.origTotal)})
+           <span>${[ed.removedCount && `${ed.removedCount} removed`, ed.overriddenCount && `${ed.overriddenCount} price${ed.overriddenCount > 1 ? 's' : ''} changed`].filter(Boolean).join(' · ')}</span></div>
+           <button type="button" class="btn btn--ghost btn--sm" data-action="reset-edits">Reset all edits</button>
+         </div>`
+      : '';
     $('#checks').innerHTML = m.reconcile.checks
       .map((c) => {
         let label = c.label;
         if (!c.ok && c.delta) label += ` (off by ${money(Math.abs(c.delta))})`;
-        if (c.label.startsWith('Line items match') && c.ok) label += ` — ${money(m.reconcile.quoteTotal)}`;
+        if (c.quoteMatch && c.ok) label += ` (${money(m.reconcile.quoteTotal)})`;
         return `<li class="${c.ok ? '' : 'bad'} ${c.info ? 'info' : ''}">${esc(label)}</li>`;
       })
       .join('');
+    $('#editNote').innerHTML = editNote;
 
     // groups
     const groups = [
@@ -146,9 +155,13 @@
                 const opts = MOVE_TARGETS.filter(([k]) => k !== 'hidden' || it.price === 0)
                   .map(([k, l]) => `<option value="${k}" ${it.cat === k ? 'selected' : ''}>${esc(l)}</option>`)
                   .join('');
-                return `<div class="line">
-                  <div class="line__label ${r.sub ? 'is-sub' : ''}" title="${esc(it.desc)}">${esc(r.label)}</div>
-                  <div class="line__price ${r.price === 0 ? 'is-zero' : ''}">${r.price === 0 ? 'Included' : money(r.price)}</div>
+                const changed = it.priceOverride != null && it.priceOverride !== it.price;
+                return `<div class="line ${changed ? 'is-changed' : ''}">
+                  <div class="line__label ${r.sub ? 'is-sub' : ''}" title="${esc(it.desc)}">${esc(r.label)}${changed ? `<span class="was">was ${it.price === 0 ? 'Included' : money(it.price)} <button type="button" class="linkbtn" data-reset-price="${r.id}">undo</button></span>` : ''}</div>
+                  <input class="line__price ${r.price === 0 ? 'is-zero' : ''}" data-price="${r.id}" value="${r.price === 0 ? '' : money(r.price)}" placeholder="Included" inputmode="decimal" autocomplete="off" aria-label="Price for ${esc(r.label)}" title="Click to change the price" />
+                  <button type="button" class="line__remove" data-remove="${r.id}" aria-label="Remove ${esc(r.label)} from the sheet" title="Remove from sheet">
+                    <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                  </button>
                   <select data-item="${r.id}" aria-label="Section for ${esc(r.label)}">${opts}</select>
                 </div>`;
               })
@@ -156,6 +169,13 @@
           : `<div class="empty">Nothing selected in this section.</div>`;
         return `<div class="group"><div class="group__head"><span>${title}</span><b>${money(sum)}</b></div>${body}</div>`;
       })
+      .join('');
+
+    // removed items
+    $('#removedBox').hidden = !m.removed.length;
+    $('#removedCount').textContent = m.removed.length;
+    $('#removedList').innerHTML = m.removed
+      .map((it) => `<li><span>${esc(MSRP.cleanPrefix(it.desc))}</span><em>${it.price === 0 ? 'Included' : money(it.price)}</em><button type="button" data-restore="${it.id}">Restore</button></li>`)
       .join('');
 
     // hidden ($0) items
@@ -271,6 +291,8 @@
   }
 
   /* ---------------- events ---------------- */
+  const findItem = (id) => state.quote && state.quote.items.find((i) => i.id === id);
+  function update() { renderPanel(); regenerate(); }
   let nameTimer;
   function bind() {
     if (window.pdfjsLib) pdfjsLib.GlobalWorkerOptions.workerSrc = PDFJS_WORKER;
@@ -305,11 +327,78 @@
     document.addEventListener('click', (e) => {
       const act = e.target.closest('[data-action]');
       if (act && act.dataset.action === 'reset') reset();
+      if (act && act.dataset.action === 'reset-edits') {
+        state.quote.items.forEach((i) => { delete i.removed; delete i.priceOverride; });
+        update();
+        toast('All edits reset to the original quote');
+        return;
+      }
       const showBtn = e.target.closest('[data-show]');
       if (showBtn) {
-        const it = state.quote.items.find((i) => i.id === showBtn.dataset.show);
-        if (it) { it.cat = 'options'; renderPanel(); regenerate(); }
+        const it = findItem(showBtn.dataset.show);
+        if (it) { it.cat = 'options'; update(); }
       }
+      const rm = e.target.closest('[data-remove]');
+      if (rm) {
+        const it = findItem(rm.dataset.remove);
+        if (it) { it.removed = true; update(); toast(`Removed “${MSRP.cleanPrefix(it.desc).slice(0, 40)}” from the sheet`); }
+      }
+      const rs = e.target.closest('[data-restore]');
+      if (rs) {
+        const it = findItem(rs.dataset.restore);
+        if (it) { delete it.removed; update(); }
+      }
+      const rp = e.target.closest('[data-reset-price]');
+      if (rp) {
+        const it = findItem(rp.dataset.resetPrice);
+        if (it) { delete it.priceOverride; update(); }
+      }
+    });
+
+    // ----- inline price editing
+    const groupsEl = $('#groups');
+    groupsEl.addEventListener('focusin', (e) => {
+      const inp = e.target.closest('input[data-price]');
+      if (!inp) return;
+      const it = findItem(inp.dataset.price);
+      const cents = it.priceOverride != null ? it.priceOverride : it.price;
+      inp.value = cents === 0 ? '' : (cents % 100 ? (cents / 100).toFixed(2) : String(cents / 100));
+      inp.dataset.orig = inp.value;
+      inp.dataset.justFocused = '1';
+      inp.select();
+    });
+    // keep the whole price selected after the click that focused it, so typing replaces it
+    groupsEl.addEventListener('mouseup', (e) => {
+      const inp = e.target.closest('input[data-price]');
+      if (inp && inp.dataset.justFocused) { e.preventDefault(); delete inp.dataset.justFocused; inp.select(); }
+    });
+    groupsEl.addEventListener('input', (e) => {
+      const inp = e.target.closest('input[data-price]');
+      if (inp) delete inp.dataset.justFocused;
+    });
+    groupsEl.addEventListener('keydown', (e) => {
+      const inp = e.target.closest('input[data-price]');
+      if (!inp) return;
+      if (e.key === 'Enter') { e.preventDefault(); inp.blur(); }
+      if (e.key === 'Escape') { inp.value = inp.dataset.orig || ''; inp.dataset.cancel = '1'; inp.blur(); }
+    });
+    groupsEl.addEventListener('focusout', (e) => {
+      const inp = e.target.closest('input[data-price]');
+      if (!inp) return;
+      const it = findItem(inp.dataset.price);
+      if (inp.dataset.cancel) { delete inp.dataset.cancel; renderPanel(); return; }
+      const raw = inp.value.trim();
+      if (raw === (inp.dataset.orig || '')) { renderPanel(); return; }
+      let cents;
+      if (raw === '' || /^included$/i.test(raw)) cents = 0;
+      else {
+        const num = raw.replace(/[$,\s]/g, '');
+        if (!/^-?\d+(\.\d{0,2})?$/.test(num)) { toast('Please enter a price like 1250 or 1,250.00'); renderPanel(); return; }
+        cents = Math.round(parseFloat(num) * 100);
+      }
+      if (cents === it.price) delete it.priceOverride;
+      else it.priceOverride = cents;
+      update();
     });
     $('#downloadBtn').addEventListener('click', download);
     $('#editToggle').addEventListener('click', (e) => {

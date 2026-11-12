@@ -99,7 +99,11 @@
 
   /** Builds the display model and reconciliation from current item categories. */
   function buildModel(quote) {
-    const items = quote.items;
+    // Apply user edits: removed lines drop out, price overrides replace the quoted price.
+    const allItems = quote.items;
+    const items = allItems
+      .filter((i) => !i.removed)
+      .map((i) => ({ ...i, origPrice: i.price, price: i.priceOverride != null ? i.priceOverride : i.price }));
     const by = (c) => items.filter((i) => i.cat === c);
     const sortGroup = (arr) => arr.slice().sort((a, b) => b.price - a.price || a.order - b.order);
 
@@ -168,13 +172,22 @@
     const bucketTotal = buckets.base + buckets.enginePerf + buckets.stylingOptions;
     const quoteTotal = quote.summary.total;
     const hiddenPriced = hidden.filter((h) => h.price !== 0);
+    // Original quote (before user edits) — proves the PDF was read correctly.
+    const origTotal = allItems.reduce((s, i) => s + i.price, 0);
+    const removedItems = allItems.filter((i) => i.removed);
+    const overridden = allItems.filter((i) => !i.removed && i.priceOverride != null && i.priceOverride !== i.price);
+    const edited = removedItems.length > 0 || overridden.length > 0;
+    const editDelta = itemsTotal - origTotal;
+
     const checks = [];
-    checks.push({ label: 'Pricing sections add up to the sum of every line item', ok: bucketTotal === itemsTotal });
-    if (quoteTotal != null) checks.push({ label: 'Line items match the quote’s Total Boat MSRP', ok: itemsTotal === quoteTotal, delta: itemsTotal - quoteTotal });
-    if (quote.summary.base != null) checks.push({ label: 'Base boat matches the quote', ok: buckets.base === quote.summary.base, info: true });
-    if (quote.summary.enginePrerig != null) {
-      const ep = sum(by('engine')) + sum(by('prerig'));
-      checks.push({ label: 'Engine + pre-rig matches the quote’s Engine & Prerig', ok: ep === quote.summary.enginePrerig, info: true });
+    checks.push({ label: 'Pricing sections add up to the Total MSRP', ok: bucketTotal === itemsTotal });
+    if (quoteTotal != null) checks.push({ label: 'Quote read correctly — line items match its Total Boat MSRP', ok: origTotal === quoteTotal, delta: origTotal - quoteTotal, quoteMatch: true });
+    if (!edited) {
+      if (quote.summary.base != null) checks.push({ label: 'Base boat matches the quote', ok: buckets.base === quote.summary.base, info: true });
+      if (quote.summary.enginePrerig != null) {
+        const ep = sum(by('engine')) + sum(by('prerig'));
+        checks.push({ label: 'Engine + pre-rig matches the quote’s Engine & Prerig', ok: ep === quote.summary.enginePrerig, info: true });
+      }
     }
     if (hiddenPriced.length) checks.push({ label: 'Every priced item appears on the sheet', ok: false });
     const ok = checks.filter((c) => !c.info).every((c) => c.ok) && quoteTotal != null;
@@ -186,6 +199,8 @@
       buckets,
       total: bucketTotal,
       quoteTotal,
+      removed: removedItems,
+      edits: { edited, removedCount: removedItems.length, overriddenCount: overridden.length, delta: editDelta, origTotal },
       reconcile: { ok, checks, itemsTotal, quoteTotal },
     };
   }
